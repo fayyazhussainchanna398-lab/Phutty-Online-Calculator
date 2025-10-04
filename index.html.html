@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phutty Buyers Online Calculator — Oil Mill Enabled</title>
+  <style>
+    /* Layout & theme */
+    :root{--accent:#2b8a3e;--blue:#1070c9;--panel-bg:rgba(255,255,255,0.95)}
+    body { margin:0; padding:0; font-family: Arial, sans-serif; background:url('https://source.unsplash.com/1600x900/?cotton,crop') no-repeat center center fixed; background-size:cover; color:#222 }
+    header { text-align:center; padding:18px; background:rgba(0,51,102,0.85); color:#fff }
+    header h1 { margin:0; font-size:22px }
+
+    .container { display:flex; gap:24px; padding:24px; flex-wrap:wrap; }
+    .menu { width:260px }
+    .menu-btn { display:block; width:100%; padding:12px; margin-bottom:12px; border:0; background:var(--accent); color:#fff; font-weight:bold; border-radius:8px; cursor:pointer }
+    .right-panel { flex:1; background:var(--panel-bg); border-radius:10px; padding:18px; box-shadow:0 6px 20px rgba(0,0,0,0.08); min-width:280px; position:relative }
+
+    .row { margin:10px 0; display:flex; align-items:center; flex-wrap:wrap }
+    label { width:260px; font-weight:600; margin-bottom:6px }
+    input { flex:1; padding:8px; font-size:16px; text-align:right; min-width:120px }
+    .menu-small { padding:10px 14px; background:var(--blue); color:#fff; border-radius:8px; border:0; cursor:pointer }
+    #result { margin-top:12px; padding:12px; border-radius:8px; background:#f7f7f7; font-family:monospace; overflow-x:auto }
+    .footer { margin-top:18px; font-size:13px; color:#555 }
+
+    /* Progress overlay styles (kept global so we can create overlay dynamically if needed) */
+    #progressContainer { display:none; position:fixed; inset:0; background:rgba(255,255,255,0.95); align-items:center; justify-content:center; flex-direction:column; z-index:9999 }
+    #progressBar { width:80%; max-width:720px; height:22px; background:#ddd; border-radius:12px; overflow:hidden; margin-top:12px }
+    #progressFill { width:0; height:100%; background:var(--accent); transition:width 0.2s }
+
+    /* Responsive tweaks */
+    @media(max-width:900px){
+      .container{flex-direction:column; padding:12px}
+      .menu{width:100%; display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
+      .menu-btn{flex:1; min-width:140px}
+      .row{flex-direction:column; align-items:flex-start}
+      label{width:100%}
+      input{text-align:left; width:100%}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Phutty Buyers Online Calculator — Oil Mill System Active</h1>
+    <div style="font-size:12px; margin-top:6px">Designed by Fayyaz Hussain Channa<br>Contact: +92-300-2320329</div>
+  </header>
+
+  <div class="container">
+    <div class="menu">
+      <button class="menu-btn" onclick="loadSection('phutty')">Phutty Estimate Calculator</button>
+      <button class="menu-btn" onclick="loadSection('otara')">Otara Calculators</button>
+      <button class="menu-btn" onclick="loadSection('oil')">Oil Mill System</button>
+    </div>
+
+    <div id="rightPanel" class="right-panel">
+      <h3 style="text-align:center; margin-top:40px; color:#444">Welcome to the Fayyaz Software House</h3>
+      <p style="text-align:center; margin-top:10px; color:#666">👉 Select a system from the left menu</p>
+    </div>
+  </div>
+
+  <!-- Progress overlay placed outside the rightPanel so it's always available -->
+  <div id="progressContainer" style="display:none;">
+    <h3 style="text-align:center">Welcome Fayyaz Software House<br>Please wait, Program is loading...</h3>
+    <div id="progressBar"><div id="progressFill"></div></div>
+  </div>
+
+  <!-- Templates (use <template> so the content isn't present in DOM until needed) -->
+  <template id="phuttyTemplate">
+    <div>
+      <h2>Phutty Estimate Calculator</h2>
+      <div class="row"><label>Lint Rate:</label><input id="lint" type="number" value="16100"></div>
+      <div class="row"><label>Binola Rate:</label><input id="binola" type="number" value="2900"></div>
+      <div class="row"><label>Expenses:</label><input id="expenses" type="number" value="753"></div>
+      <div style="text-align:center; margin-top:10px"><button class="menu-small" onclick="calculateEstimate()">Calculate</button></div>
+      <div id="result" style="white-space:pre-wrap"></div>
+    </div>
+  </template>
+
+  <template id="otaraEstimateTemplate">
+    <div>
+      <h2>Otara Calculator (Estimate)</h2>
+      <div class="row"><label>Phutty (g):</label><input id="phutty" type="number" value="500"></div>
+      <div class="row"><label>Lint (g):</label><input id="otaraLint" type="number" value="170"></div>
+      <div class="row"><label>Shortage %:</label><input id="shortagePercent" type="number" value="10"></div>
+      <div style="text-align:center; margin-top:10px"><button class="menu-small" onclick="calculateOtara()">Calculate</button></div>
+      <div id="resultOOld" style="white-space:pre-wrap; margin-top:10px"></div>
+    </div>
+  </template>
+
+  <template id="otaraFinalTemplate">
+    <div>
+      <h2>Otara Calculator (Final System)</h2>
+      <div class="row"><label>Phutty Weight (kgs):</label><input id="phuttyWeight" type="number" value="124586"></div>
+      <div class="row"><label>Total Dispatched Bales:</label><input id="totalBales" type="number" value="200"></div>
+      <div class="row"><label>Total Dispatched Bales Weight in Kgs:</label><input id="balesWeight" type="number" value="31520"></div>
+      <div class="row"><label>Avail Bales in Stock on Plateform Kgs:</label><input id="otaraWeight" type="number" value="11445"></div>
+      <div style="text-align:center; margin-top:10px"><button class="menu-small" onclick="calculateOtaraNew()">Calculate Otara</button></div>
+      <div id="resultONew" style="white-space:pre-wrap; margin-top:10px"></div>
+    </div>
+  </template>
+
+  <template id="oilTemplate">
+    <div>
+      <h2>Oil Mill System — Detailed Calculation</h2>
+      <div class="row"><label>Cotton Seed Rate:</label><input id="seedRateNum" type="number" value="3250"></div>
+      <div class="row"><label>Oil Cake Rate:</label><input id="cakeRateNum" type="number" value="3300"></div>
+      <div class="row"><label>Estimated Oil Cake (kg):</label><input id="cakeKg" type="number" value="32" step="0.01"></div>
+
+      <div class="row"><label>Cotton Seed Oil Rate:</label><input id="oilRateNum" type="number" value="16000"></div>
+      <div class="row"><label>Estimated Seed Oil (kg):</label><input id="oilKg" type="number" value="3" step="0.01"></div>
+
+      <div class="row"><label>Binola Rate (to subtract):</label><input id="binolaRate" type="number" value="3100"></div>
+      <div class="row"><label>Less Expense:</label><input id="lessExpense" type="number" value="500"></div>
+
+      <div style="text-align:center; margin-top:10px"><button class="menu-small" onclick="calculateOilMill()">Calculate Oil Mill Result</button></div>
+      <div id="resultOil" style="white-space:pre-wrap; margin-top:12px; font-family:monospace"></div>
+      <div class="footer">All calculations are based on <b>37.324</b> denominator fixed.</div>
+    </div>
+  </template>
+
+  <script>
+    // credits: user can open sections 5 times
+    let credit = 5;
+
+    // loadSection: checks credits and shows progress before opening
+    function loadSection(section){
+      if(credit <= 0){
+        alert("Your free credits are finished. Please purchase credits. Contact: Fayyaz Hussain +92-300-2320329");
+        return;
+      }
+      showProgress(()=>openSection(section));
+    }
+
+    // ensure overlay exists; if not, create it dynamically
+    function ensureProgressOverlay(){
+      let container = document.getElementById('progressContainer');
+      if(container) return container;
+
+      // create overlay if it somehow doesn't exist
+      container = document.createElement('div');
+      container.id = 'progressContainer';
+      container.style.display = 'none';
+      container.style.position = 'fixed';
+      container.style.inset = '0';
+      container.style.background = 'rgba(255,255,255,0.95)';
+      container.style.alignItems = 'center';
+      container.style.justifyContent = 'center';
+      container.style.flexDirection = 'column';
+      container.style.zIndex = '9999';
+      container.style.display = 'none';
+
+      const title = document.createElement('h3');
+      title.style.textAlign = 'center';
+      title.innerHTML = 'Welcome Fayyaz Software House<br>Please wait, Program is loading...';
+
+      const bar = document.createElement('div');
+      bar.id = 'progressBar';
+      bar.style.width = '80%';
+      bar.style.maxWidth = '720px';
+      bar.style.height = '22px';
+      bar.style.background = '#ddd';
+      bar.style.borderRadius = '12px';
+      bar.style.overflow = 'hidden';
+      bar.style.marginTop = '12px';
+
+      const fill = document.createElement('div');
+      fill.id = 'progressFill';
+      fill.style.width = '0%';
+      fill.style.height = '100%';
+      fill.style.background = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#2b8a3e';
+      fill.style.transition = 'width 0.2s';
+
+      bar.appendChild(fill);
+      container.appendChild(title);
+      container.appendChild(bar);
+      document.body.appendChild(container);
+      return container;
+    }
+
+    // showProgress: animate progress, decrement credit, then call callback
+    function showProgress(callback){
+      const container = ensureProgressOverlay();
+      const fill = document.getElementById('progressFill');
+      if(!container || !fill){
+        // if something unexpected happens, fallback to opening immediately
+        callback();
+        return;
+      }
+
+      container.style.display = 'flex';
+      fill.style.width = '0%';
+      let progress = 0;
+
+      // small safety: disable pointer events under the overlay
+      container.style.pointerEvents = 'auto';
+
+      const interval = setInterval(()=>{
+        progress += 5;
+        if(progress > 100) progress = 100;
+        fill.style.width = progress + '%';
+        if(progress >= 100){
+          clearInterval(interval);
+          setTimeout(()=>{
+            container.style.display = 'none';
+            credit = Math.max(0, credit - 1);
+            callback();
+          }, 250);
+        }
+      }, 80);
+    }
+
+    // openSection: use templates (clone) so there are no duplicate hidden nodes in DOM
+    function openSection(section){
+      const panel = document.getElementById('rightPanel');
+      panel.innerHTML = '';
+
+      if(section === 'phutty'){
+        const tpl = document.getElementById('phuttyTemplate');
+        panel.appendChild(tpl.content.cloneNode(true));
+      }
+
+      if(section === 'otara'){
+        // append Estimate then Final system (user requested both visible together)
+        const tpl1 = document.getElementById('otaraEstimateTemplate');
+        const tpl2 = document.getElementById('otaraFinalTemplate');
+        panel.appendChild(tpl1.content.cloneNode(true));
+        panel.appendChild(document.createElement('hr'));
+        panel.appendChild(tpl2.content.cloneNode(true));
+      }
+
+      if(section === 'oil'){
+        const tpl = document.getElementById('oilTemplate');
+        panel.appendChild(tpl.content.cloneNode(true));
+      }
+    }
+
+    /* ---------------- Calculation functions (operate on the currently rendered inputs) ---------------- */
+    function calculateEstimate(){
+      const lint = parseFloat(document.getElementById('lint').value) || 0;
+      const binola = parseFloat(document.getElementById('binola').value) || 0;
+      const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+      const total = lint + (binola * 2);
+      const esti = total / 2.8;
+      const finalValue = esti - expenses;
+      document.getElementById('result').innerHTML = `Total: ${total.toFixed(2)}\nEsti: ${esti.toFixed(2)}\nExpenses: ${expenses.toFixed(2)}\nFinal: ${finalValue.toFixed(2)}`;
+    }
+
+    // Estimate Otara calculation (two decimals, seed option removed earlier)
+    function calculateOtara(){
+      const phutty = parseFloat(document.getElementById('phutty').value)||0;
+      const lint = parseFloat(document.getElementById('otaraLint').value)||0;
+      const shortagePercent = parseFloat(document.getElementById('shortagePercent').value)||0;
+      const lintVal = lint * 8; 
+      const shortageVal = (phutty * (shortagePercent/100))*8;
+      let resultText=''; 
+      if (lintVal>0) resultText += 'Lint: '+lintVal.toFixed(2)+'\n'; 
+      if (shortageVal>0) resultText += 'Shortage: '+shortageVal.toFixed(2)+' kgs';
+      document.getElementById('resultOOld').innerText = resultText;
+    }
+
+    // Final Otara calculation: phutty mds display with remainder in kgs (fraction * 40), ratio calculated normally
+    function calculateOtaraNew(){
+      const phuttyWeight = parseFloat(document.getElementById('phuttyWeight').value) || 0;
+      const totalBales = parseFloat(document.getElementById('totalBales').value) || 0;
+      const balesWeight = parseFloat(document.getElementById('balesWeight').value) || 0;
+      const otaraWeight = parseFloat(document.getElementById('otaraWeight').value) || 0;
+
+      const phuttyMdsRaw = phuttyWeight / 40; // e.g. 124586/40 = 3114.65 mds
+      const phuttyMdsInt = Math.floor(phuttyMdsRaw);
+      const phuttyMdsFraction = phuttyMdsRaw - phuttyMdsInt;
+      const remainderKg = Math.round(phuttyMdsFraction * 40); // kg remainder after integer mds
+      const phuttyMdsDisplay = phuttyMdsInt + '.' + remainderKg;
+
+      const totalWeight = otaraWeight + balesWeight;
+      const ratio = totalWeight / phuttyMdsRaw;
+
+      let resultText = '';
+      resultText += `Phutty Weight: ${phuttyWeight} kgs\n`;
+      resultText += `Phutty in Mds: ${phuttyMdsDisplay}\n`;
+      resultText += `Total Dispatched Bales: ${totalBales}\n`;
+      resultText += `Total Dispatched Bales Weight in Kgs: ${balesWeight} kgs\n`;
+      resultText += `Avail Bales in Stock on Plateform Kgs: ${otaraWeight} kgs\n`;
+      resultText += `Total Weight (Otara + Bales): ${totalWeight} kgs\n`;
+      resultText += `Final Ratio (Total / Phutty Mds): ${ratio.toFixed(2)}`;
+
+      document.getElementById('resultONew').innerText = resultText;
+    }
+
+    // Oil mill calculation (denominator fixed at 37.324)
+    function calculateOilMill(){
+      const denominator = 37.324;
+
+      const sNum = parseFloat(document.getElementById('seedRateNum').value) || 0;
+      const cNum = parseFloat(document.getElementById('cakeRateNum').value) || 0;
+      const cakeKg = parseFloat(document.getElementById('cakeKg').value) || 0;
+      const oNum = parseFloat(document.getElementById('oilRateNum').value) || 0;
+      const oilKg = parseFloat(document.getElementById('oilKg').value) || 0;
+      const binola = parseFloat(document.getElementById('binolaRate').value) || 0;
+      const lessExpense = parseFloat(document.getElementById('lessExpense').value) || 0;
+
+      const seedPerKg = sNum / denominator;
+      const cakePerKg = cNum / denominator;
+      const oilPerKg = oNum / denominator;
+
+      const cakeEstimateValue = cakePerKg * cakeKg;
+      const oilEstimateValue = oilPerKg * oilKg;
+      const sumOilAndCake = cakeEstimateValue + oilEstimateValue;
+      const profitBeforeExpense = sumOilAndCake - binola;
+      const finalProfit = profitBeforeExpense - lessExpense;
+
+      const shortageKg = denominator - (cakeKg + oilKg);
+
+      const out = [];
+      out.push(`Cotton seed ${denominator} kgs`);
+      out.push(`Rate ${sNum}/${denominator}`);
+      out.push(`Oil Cake Estimate ${cakeKg} kgs`);
+      out.push(`Rate ${cNum}/${denominator}`);
+      out.push(`Cotton Seed Oil Estimate ${oilKg} kgs`);
+      out.push(`Rate ${oNum}/${denominator}`);
+      out.push(`Shortage ${shortageKg.toFixed(2)} kgs`);
+      out.push(`Expense ${lessExpense}`);
+      out.push('-------------------------------------------');
+      out.push(`Final Profit = ${finalProfit.toFixed(0)}`);
+
+      document.getElementById('resultOil').innerText = out.join('\n');
+    }
+
+    // Automatically open a default section if you want (commented out)
+    // showProgress(()=>openSection('phutty'));
+  </script>
+
+<!-- Cotton Price Wide Widget Section -->
+<div style="max-width:900px; margin:40px auto; padding:20px; background:#fff; border-radius:12px; box-shadow:0 4px 18px rgba(0,0,0,0.1);">
+  <h2 style="text-align:center; margin-bottom:12px; color:#232526;">US Cotton #2 Live Chart</h2>
+  <div class="tradingview-widget-container">
+    <div id="tradingview_cotton"></div>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+      new TradingView.widget({
+        "width": "100%",
+        "height": 300,
+        "symbol": "ICEUS:CT1!",
+        "interval": "D",
+        "timezone": "Etc/UTC",
+        "theme": "light",
+        "style": "1",
+        "locale": "en",
+        "toolbar_bg": "#f1f3f6",
+        "enable_publishing": false,
+        "withdateranges": true,
+        "hide_side_toolbar": false,
+        "save_image": false,
+        "container_id": "tradingview_cotton"
+      });
+    </script>
+  </div>
+</div>
+
+</body>
+</html>
